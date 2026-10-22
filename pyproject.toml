@@ -1,0 +1,17 @@
+[project]
+name = "ordstat"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Anton Karatanov", email = "silencebless@yandex.ru" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+ordstat = "ordstat.main:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
