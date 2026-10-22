@@ -12,3 +12,7 @@ wheels/
 
 *.csv
 *.json
+*.log
+*.txt
+sample/
+README_DATA.md
