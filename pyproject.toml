@@ -10,7 +10,14 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.scripts]
-ordstat = "ordstat.main:main"
+ordstat = "ordstat.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "ruff", "mypy"]
+
+[tool.mypy]
+strict = true
+packages = ["ordstat", "tests"]
 
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
