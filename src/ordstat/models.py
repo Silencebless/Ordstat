@@ -1,19 +1,25 @@
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import TypedDict
 
-#EXCEPTIONS
-class OrdstatError(Exception):
-    """Базовое исключение утилиты"""
-class FileAccessError(OrdstatError):
-    """Нет файла, нет прав доступа"""
-class ConfigFormatError(OrdstatError):
-    """Битый JSON или неверная схема данных"""
-class CsvStructureError:
-    """Отсутствуют заголовки, неверная кодировка или фатальная ошибка CSV"""
 
-#ORDERS
+class OrdstatError(Exception):
+    """Базовое исключение утилиты."""
+
+
+class FileAccessError(OrdstatError):
+    """Нет файла или нет прав доступа."""
+
+
+class ConfigFormatError(OrdstatError):
+    """Битый JSON или неверная схема данных."""
+
+
+class CsvStructureError(OrdstatError):
+    """Фатальная ошибка структуры CSV."""
+
+
 @dataclass(frozen=True, slots=True)
 class Order:
     order_id: str
@@ -22,14 +28,17 @@ class Order:
     status: str
     amount: Decimal
     currency: str
+    amount_rub: Decimal
     city: str
     items_count: int
+
 
 @dataclass(frozen=True, slots=True)
 class RejectedOrder:
     row_number: int
     reason: str
     raw_fields: tuple[str, ...]
+
 
 class SummaryOrdersDict(TypedDict):
     rows_read: int
@@ -39,10 +48,12 @@ class SummaryOrdersDict(TypedDict):
     duplicates_replaced: int
     orders_unique: int
 
+
 class DayStatDict(TypedDict):
     date: str
     revenue_rub: str
     orders: int
+
 
 class CityStatDict(TypedDict):
     city: str
@@ -50,16 +61,19 @@ class CityStatDict(TypedDict):
     revenue_rub: str
     aov_rub: str
 
+
 class CancelMonthShareDict(TypedDict):
     month: str
     orders: int
     cancelled: int
     share_pct: str
 
+
 class SuspiciousUser(TypedDict):
     user_id: int
     max_orders_in_window: int
     first_burst_start: str
+
 
 class ReportOrdersDict(TypedDict):
     summary: SummaryOrdersDict
@@ -69,7 +83,6 @@ class ReportOrdersDict(TypedDict):
     cancel_share_by_month: list[CancelMonthShareDict]
     suspicious_users: list[SuspiciousUser]
 
-#LOGS
 
 @dataclass(frozen=True, slots=True)
 class LogEntry:
@@ -78,8 +91,9 @@ class LogEntry:
     method: str
     endpoint: str
     status: int
-    bytes: int
+    bytes_sent: int
     processing_time: Decimal
+
 
 class SummaryLogsDict(TypedDict):
     lines_total: int
@@ -88,6 +102,7 @@ class SummaryLogsDict(TypedDict):
     status_classes: dict[str, int]
     error_rate_5xx_pct: str
 
+
 class EndpointDict(TypedDict):
     endpoint: str
     count: int
@@ -95,9 +110,11 @@ class EndpointDict(TypedDict):
     p95: str
     p99: str
 
+
 class BruteforceIp(TypedDict):
     ip: str
     max_401_per_minute: int
+
 
 class ReportLogsDict(TypedDict):
     summary: SummaryLogsDict
