@@ -13,12 +13,14 @@ def read_orders(fp: Path) -> Iterator[dict] | None:
     except (FileNotFoundError, PermissionError, IsADirectoryError, OSError) as err:
         raise FileAccessError(f"Критическая ошибка при открытии файла {fp}") from err
 
+
 def read_logs(fp: Path) -> Iterator[str] | None:
     try:
         with open(fp, "r", encoding="utf-8-sig") as file:
             yield from file
     except (FileNotFoundError, PermissionError, IsADirectoryError, OSError) as err:
         raise FileAccessError(f"Критическая ошибка при открытии файла {fp}") from err
+
 
 def reader(fp: Path) -> Iterator[dict] | Iterator[str] | None:
     suffix = fp.suffix.lower()
@@ -29,4 +31,3 @@ def reader(fp: Path) -> Iterator[dict] | Iterator[str] | None:
         return read_logs(fp)
     else:
         raise ConfigFormatError(f"Неверный формат файла {fp}")
-

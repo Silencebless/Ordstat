@@ -29,7 +29,7 @@ class Order:
 class RejectedOrder:
     row_number: int
     reason: str
-    raw_fields: list[str]
+    raw_fields: tuple[str, ...]
 
 class SummaryOrdersDict(TypedDict):
     rows_read: int
