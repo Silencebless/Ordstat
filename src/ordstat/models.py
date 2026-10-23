@@ -1,8 +1,19 @@
-from datetime import datetime, date
+from datetime import datetime
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import TypedDict
 
+#EXCEPTIONS
+class OrdstatError(Exception):
+    """Базовое исключение утилиты"""
+class FileAccessError(OrdstatError):
+    """Нет файла, нет прав доступа"""
+class ConfigFormatError(OrdstatError):
+    """Битый JSON или неверная схема данных"""
+class CsvStructureError:
+    """Отсутствуют заголовки, неверная кодировка или фатальная ошибка CSV"""
+
+#ORDERS
 @dataclass(frozen=True, slots=True)
 class Order:
     order_id: str
@@ -58,7 +69,7 @@ class ReportOrdersDict(TypedDict):
     cancel_share_by_month: list[CancelMonthShareDict]
     suspicious_users: list[SuspiciousUser]
 
-#---------------------------------------------
+#LOGS
 
 @dataclass(frozen=True, slots=True)
 class LogEntry:
@@ -70,7 +81,6 @@ class LogEntry:
     bytes: int
     processing_time: Decimal
 
-# Структуры для JSON-отчета Logs
 class SummaryLogsDict(TypedDict):
     lines_total: int
     lines_parsed: int
