@@ -17,3 +17,4 @@ wheels/
 sample/
 README_DATA.md
 tests/
+.coverage
