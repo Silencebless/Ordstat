@@ -6,10 +6,14 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from ordstat.aggregations import find_suspicious_users, nearest_rank_percentile, process_logs_stream, process_orders_stream
+from ordstat.aggregations import (
+    find_suspicious_users,
+    process_logs_stream,
+    process_orders_stream,
+)
 from ordstat.cli import main
 from ordstat.models import RejectedOrder
-from ordstat.parsing import normalize_endpoint, parse_log_line
+from ordstat.parsing import parse_log_line
 from ordstat.validation import (
     parse_amount,
     parse_city,
@@ -41,7 +45,7 @@ def test_parse_created_at(raw_date: str, expected: datetime | None) -> None:
     [
         ("100.50", Decimal("100.50")),
         (" 1 000,25 ", Decimal("1000.25")),
-        ("1\u00a0500", Decimal("1500")),
+        ("1\u00a0500", Decimal(1500)),
         ("0", None),
         ("-10", None),
         ("1e5", None),
@@ -94,7 +98,7 @@ def test_parse_city(raw_city: str, expected: str) -> None:
     ],
 )
 def test_validation_rejection_reasons(row: tuple[str, ...], expected_reason: str) -> None:
-    res = validate_order_row(1, row, {"RUB": Decimal("1")}, {})
+    res = validate_order_row(1, row, {"RUB": Decimal(1)}, {})
     assert isinstance(res, RejectedOrder)
     assert res.reason == expected_reason
 
@@ -113,10 +117,9 @@ def test_suspicious_window_boundary_600_vs_601() -> None:
 
 
 def test_month_boundary_moscow_time() -> None:
-    # 2026-03-31 21:30:00 UTC == 2026-04-01 00:30:00 MSK
     ts = str(int(datetime(2026, 3, 31, 21, 30, 0, tzinfo=ZoneInfo("UTC")).timestamp()))
     rows = [("ORD-000001", "1", ts, "cancelled", "100", "RUB", "Москва", "1")]
-    report = process_orders_stream(rows, {"RUB": Decimal("1")}, {}, lambda _: None)
+    report = process_orders_stream(rows, {"RUB": Decimal(1)}, {}, lambda _: None)
     assert report["cancel_share_by_month"][0]["month"] == "2026-04"
 
 
@@ -135,11 +138,47 @@ def test_logs_parsing_and_aggregation() -> None:
     assert report["summary"]["lines_total"] == 21
     assert report["summary"]["lines_parsed"] == 20
     assert report["summary"]["lines_malformed"] == 1
-    assert report["bruteforce_ips"] == [{"ip": "203.0.113.50" if False else "203.0.113.7", "max_401_per_minute": 20}]
+    assert report["bruteforce_ips"] == [{"ip": "203.0.113.7", "max_401_per_minute": 20}]
 
 
-def test_cli_exit_codes(tmp_path: Path) -> None:
-    assert main(["orders", "--orders", str(tmp_path / "missing.csv"), "--rates", "r", "--aliases", "a", "--out", "o", "--rejected", "rej"]) == 3
+def test_cli_orders_and_logs_end_to_end(tmp_path: Path) -> None:
+    assert main([
+        "orders",
+        "--orders", str(tmp_path / "missing.csv"),
+        "--rates", "r",
+        "--aliases", "a",
+        "--out", "o",
+        "--rejected", "rej",
+    ]) == 3
+
+    rates_f = tmp_path / "rates.json"
+    aliases_f = tmp_path / "aliases.json"
+    orders_f = tmp_path / "orders.csv"
+    out_orders_f = tmp_path / "orders_out.json"
+    rej_f = tmp_path / "rejected.csv"
+
+    rates_f.write_text('{"base": "RUB", "rates": {"RUB": "1", "USD": "90.5"}}', encoding="utf-8")
+    aliases_f.write_text('{"спб": "Санкт-Петербург"}', encoding="utf-8")
+    orders_f.write_text(
+        "order_id,user_id,created_at,status,amount,currency,city,items_count\n"
+        "ORD-000001,1,2026-03-01T10:00:00,paid,100,RUB,спб,1\n"
+        "ORD-000001,1,2026-03-01T11:00:00,paid,200,RUB,спб,2\n"
+        "bad_id,1,2026-03-01T11:00:00,paid,200,RUB,спб,2\n",
+        encoding="utf-8",
+    )
+    assert main([
+        "orders",
+        "--orders", str(orders_f),
+        "--rates", str(rates_f),
+        "--aliases", str(aliases_f),
+        "--out", str(out_orders_f),
+        "--rejected", str(rej_f),
+        "-v",
+    ]) == 0
+    orders_data = json.loads(out_orders_f.read_text(encoding="utf-8"))
+    assert orders_data["summary"]["orders_unique"] == 1
+    assert orders_data["summary"]["duplicates_replaced"] == 1
+    assert orders_data["revenue_rub"] == "200.00"
 
     log_file = tmp_path / "access.log"
     out_file = tmp_path / "out.json"

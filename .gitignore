@@ -16,3 +16,4 @@ wheels/
 *.txt
 sample/
 README_DATA.md
+tests/

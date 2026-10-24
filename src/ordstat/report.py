@@ -6,14 +6,11 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 from types import TracebackType
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, Self
 
 from ordstat.models import FileAccessError, RejectedOrder
 
 logger = logging.getLogger(__name__)
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 REJECTED_HEADER = [
     "row_number",
@@ -29,7 +26,7 @@ REJECTED_HEADER = [
 ]
 
 
-def timed(func: Callable[P, R]) -> Callable[P, R]:
+def timed[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         start = time.perf_counter()
@@ -48,13 +45,15 @@ class RejectedCsvWriter:
         self._file: Any = None
         self._writer: Any = None
 
-    def __enter__(self) -> "RejectedCsvWriter":
+    def __enter__(self) -> Self:
         try:
             self._file = open(self._fp, "w", encoding="utf-8", newline="")
             self._writer = csv.writer(self._file)
             self._writer.writerow(REJECTED_HEADER)
         except (FileNotFoundError, PermissionError, IsADirectoryError, OSError) as err:
-            raise FileAccessError(f"Не удалось открыть файл для записи отклонённых строк: {self._fp}") from err
+            raise FileAccessError(
+                f"Не удалось открыть файл для записи отклонённых строк: {self._fp}"
+            ) from err
         return self
 
     def write(self, item: RejectedOrder) -> None:

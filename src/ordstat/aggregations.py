@@ -3,7 +3,7 @@ import math
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from datetime import datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from ordstat.models import (
     BruteforceIp,
@@ -11,7 +11,7 @@ from ordstat.models import (
     CityStatDict,
     DayStatDict,
     EndpointDict,
-     Order,
+    Order,
     RejectedOrder,
     ReportLogsDict,
     ReportOrdersDict,
@@ -51,8 +51,7 @@ def find_suspicious_users(user_timestamps: dict[int, list[datetime]]) -> list[Su
             while right < n and (times[right] - times[left]).total_seconds() <= 600:
                 right += 1
             count = right - left
-            if count > max_in_window:
-                max_in_window = count
+            max_in_window = max(max_in_window, count)
             if count >= 5 and first_burst is None:
                 first_burst = times[left]
 
@@ -159,7 +158,9 @@ def process_orders_stream(
         rows_read=rows_read,
         rows_valid=rows_valid,
         rows_rejected=rows_rejected,
-        rejected_by_reason={k: rejected_counts[k] for k in sorted(rejected_counts) if rejected_counts[k] > 0},
+        rejected_by_reason={
+            k: rejected_counts[k] for k in sorted(rejected_counts) if rejected_counts[k] > 0
+        },
         duplicates_replaced=duplicates_replaced,
         orders_unique=len(unique_orders),
     )
@@ -211,9 +212,9 @@ def process_logs_stream(lines: Iterable[str]) -> ReportLogsDict:
             ip_minute_401[(entry.ip, minute_key)] += 1
 
     if lines_parsed > 0:
-        err_rate = (Decimal(status_classes["5xx"]) * Decimal(100) / Decimal(lines_parsed)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
+        err_rate = (
+            Decimal(status_classes["5xx"]) * Decimal(100) / Decimal(lines_parsed)
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     else:
         err_rate = Decimal("0.00")
 
@@ -236,8 +237,7 @@ def process_logs_stream(lines: Iterable[str]) -> ReportLogsDict:
 
     ip_max_401: dict[str, int] = defaultdict(int)
     for (ip, _), cnt in ip_minute_401.items():
-        if cnt > ip_max_401[ip]:
-            ip_max_401[ip] = cnt
+        ip_max_401[ip] = max(ip_max_401[ip], cnt)
 
     bruteforce_ips: list[BruteforceIp] = [
         BruteforceIp(ip=ip, max_401_per_minute=cnt)

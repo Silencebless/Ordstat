@@ -1,4 +1,5 @@
 import sys
+
 from ordstat.cli import main
 
 if __name__ == "__main__":

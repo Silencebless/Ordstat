@@ -1,6 +1,6 @@
 import re
-from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from datetime import UTC, datetime
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
 from ordstat.models import Order, RejectedOrder
@@ -60,7 +60,7 @@ def parse_created_at(val: str) -> datetime | None:
 
     if len(cleaned) == 10 and ASCII_DIGITS_PATTERN.match(cleaned):
         try:
-            dt_utc = datetime.fromtimestamp(int(cleaned), tz=timezone.utc)
+            dt_utc = datetime.fromtimestamp(int(cleaned), tz=UTC)
             return dt_utc.astimezone(MOSCOW_TZ)
         except (ValueError, OverflowError, OSError):
             return None
@@ -111,7 +111,9 @@ def validate_order_row(
     rates: dict[str, Decimal],
     aliases: dict[str, str],
 ) -> Order | RejectedOrder:
-    f_order_id, f_user_id, f_created_at, f_status, f_amount, f_currency, f_city, f_items = raw_fields
+    f_order_id, f_user_id, f_created_at, f_status, f_amount, f_currency, f_city, f_items = (
+        raw_fields
+    )
 
     order_id = parse_order_id(f_order_id)
     if order_id is None:

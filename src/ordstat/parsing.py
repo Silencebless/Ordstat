@@ -3,12 +3,17 @@ import ipaddress
 import json
 import re
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from ordstat.models import ConfigFormatError, CsvStructureError, FileAccessError, LogEntry
+from ordstat.models import (
+    ConfigFormatError,
+    CsvStructureError,
+    FileAccessError,
+    LogEntry,
+)
 
 MOSCOW_TZ = ZoneInfo("Europe/Moscow")
 
@@ -122,9 +127,21 @@ def parse_log_line(line: str) -> LogEntry | None:
     if not match:
         return None
 
-    ip_str, day_s, mon_s, year_s, hour_s, min_s, sec_s, tz_s, method, raw_path, status_s, bytes_s, time_s = (
-        match.groups()
-    )
+    (
+        ip_str,
+        day_s,
+        mon_s,
+        year_s,
+        hour_s,
+        min_s,
+        sec_s,
+        tz_s,
+        method,
+        raw_path,
+        status_s,
+        bytes_s,
+        time_s,
+    ) = match.groups()
 
     try:
         ipaddress.IPv4Address(ip_str)
@@ -148,13 +165,15 @@ def parse_log_line(line: str) -> LogEntry | None:
     if tz_hours > 23 or tz_minutes > 59:
         return None
 
-    from datetime import timedelta
-
     offset = timedelta(minutes=tz_sign * (tz_hours * 60 + tz_minutes))
     try:
         dt = datetime(
-            int(year_s), month, int(day_s),
-            int(hour_s), int(min_s), int(sec_s),
+            int(year_s),
+            month,
+            int(day_s),
+            int(hour_s),
+            int(min_s),
+            int(sec_s),
             tzinfo=timezone(offset),
         ).astimezone(MOSCOW_TZ)
     except ValueError:
